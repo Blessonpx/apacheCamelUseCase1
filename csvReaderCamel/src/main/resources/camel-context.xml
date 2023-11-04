@@ -1,0 +1,53 @@
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:camel="http://camel.apache.org/schema/spring"
+       xsi:schemaLocation="
+         http://www.springframework.org/schema/beans
+         http://www.springframework.org/schema/beans/spring-beans.xsd
+         http://camel.apache.org/schema/spring
+         http://camel.apache.org/schema/spring/camel-spring.xsd">
+
+    <!-- Define your CSV format here if you are using Bindy
+    <bean id="bindyDataFormat" class="org.apache.camel.model.dataformat.BindyCsvDataFormat">
+        <property name="classType" value="your.package.YourCsvModelClass"/>
+    </bean>
+    -->
+
+    <!-- Define Camel Routes -->
+    <camelContext xmlns="http://camel.apache.org/schema/spring">
+        <route>
+            <from uri="D:/Code/Java/spring/sample_csv/zuari1698665250998_2023-10-26+to+2023-10-30.csv&amp;noop=true"/>
+            <transacted ref="PROPAGATION_REQUIRED"/>
+            <unmarshal>
+                <csv/>
+            </unmarshal>
+            <split>
+                <simple>${body}</simple>
+                <to uri="bean:csvToSqlProcessor"/>
+            </split>
+            <to uri="jdbc:dataSource"/>
+        </route>
+    </camelContext>
+
+    <!-- Processor to convert CSV to SQL -->
+    <bean id="csvToSqlProcessor" class="com.bpx.csvReaderCamel.CsvToSqlProcessor"/>
+
+    <!-- DataSource configuration -->
+    <bean id="dataSource" class="org.apache.commons.dbcp2.BasicDataSource" destroy-method="close">
+        <property name="driverClassName" value="com.mysql.cj.jdbc.Driver"/>
+        <property name="url" value="jdbc:mysql://localhost:3306/test_base_1"/>
+        <property name="username" value="root"/>
+        <property name="password" value="BPXmysql*123"/>
+        <property name="defaultAutoCommit" value="true"/>
+    </bean>
+
+    <bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="dataSource"/>
+    </bean>
+
+    <!-- Camel transaction policy using the transaction manager -->
+    <bean id="PROPAGATION_REQUIRED" class="org.apache.camel.spring.spi.SpringTransactionPolicy">
+        <property name="transactionManager" ref="transactionManager"/>
+        <property name="propagationBehaviorName" value="PROPAGATION_REQUIRED"/>
+    </bean>
+</beans>
